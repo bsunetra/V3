@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Internship Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------- STAR BACKGROUND ---------- */
+    body {
+      width: 100%;
+      height: 100vh;
+      background-color: #000;
+      background-image: radial-gradient(circle at top right, rgba(255, 87, 34, 0.15), transparent),
+        radial-gradient(circle at 20% 80%, rgba(33, 150, 243, 0.15), transparent);
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      font-family: "Montserrat", sans-serif;
+      color: white;
+    }
+
+    canvas {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    /* ---------- NAVBAR ---------- */
+    nav {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px 40px;
+      z-index: 3;
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+      gap: 60px;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #7b2ff7, #f107a3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 25px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: white;
+      font-weight: 500;
+      transition: 0.3s ease;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .nav-links a:hover {
+      color: #00c6ff;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.4);
+    }
+
+    /* ---------- DASHBOARD BOX ---------- */
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 600px;
+      margin: 180px auto 0;
+      padding: 60px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 25px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 1.2s ease-in;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, #7b2ff7, #f107a3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.85);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    footer {
+      position: fixed;
+      bottom: 15px;
+      width: 100%;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+      z-index: 2;
+    }
+
+    footer span {
+      color: #ff4081;
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 25px;
+      }
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .container {
+        margin-top: 200px;
+        padding: 40px 20px;
+      }
+    }
+
+    /* ---------- CHATBOT STYLING ---------- */
+    .chatbot-icon {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #8a2be2;
+      color: white;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0px 0px 15px rgba(138,43,226,0.5);
+      transition: 0.3s;
+    }
+    .chatbot-icon:hover {
+      transform: scale(1.1);
+    }
+
+    .chatbot-container {
+      position: fixed;
+      bottom: 100px;
+      right: 25px;
+      width: 320px;
+      height: 430px;
+      background: #1a1a1a;
+      color: white;
+      border-radius: 15px;
+      display: none;
+      flex-direction: column;
+      z-index: 5;
+      box-shadow: 0px 0px 20px rgba(0,0,0,0.4);
+    }
+
+    .chatbot-header {
+      background: #8a2be2;
+      padding: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 15px 15px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chatbot-messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      height: 300px;
+    }
+
+    .chatbot-input-area {
+      display: flex;
+      padding: 10px;
+      background: #111;
+    }
+
+    .chatbot-input-area input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      outline: none;
+      border: none;
+    }
+
+    .chatbot-input-area button {
+      margin-left: 10px;
+      padding: 8px 14px;
+      background: #8a2be2;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="stars"></canvas>
+
+  <!-- Navigation Bar -->
+  <nav>
+    <div class="logo">INTERNSHIP FINDER</div>
+    <ul class="nav-links">
+      <li><a href="home.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="internshipfinder.html">Find_Your_Internship</a></li>
+      <li><a href="resume.html">ResumeBuilder</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Dashboard Content -->
+  <div class="container">
+    <h1>Welcome to your Dashboard</h1>
+    <p>Select a tab above to begin exploring your tools.</p>
+  </div>
+
+  <footer>Made by <b>V3</b> <span>❤️</span> under <b>Codesapiens</b></footer>
+
+  <!-- ---------- CHATBOT HTML ---------- -->
+  <div class="chatbot-icon" onclick="toggleChatbot()">💬</div>
+
+  <div class="chatbot-container" id="chatbot">
+    <div class="chatbot-header">
+      Internship Assistant
+      <span class="close-btn" onclick="toggleChatbot()">×</span>
+    </div>
+    <div class="chatbot-messages" id="chat-messages"></div>
+    <div class="chatbot-input-area">
+      <input type="text" id="chat-input" placeholder="Ask about internships..." onkeydown="handleKey(event)">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- ---------- STAR BACKGROUND SCRIPT ---------- -->
+  <script>
+    const STAR_COLOR = '#fff';
+    const STAR_SIZE = 3;
+    const STAR_MIN_SCALE = 0.2;
+    const OVERFLOW_THRESHOLD = 50;
+    const STAR_COUNT = (window.innerWidth + window.innerHeight) / 8;
+
+    const canvas = document.querySelector('canvas'),
+          context = canvas.getContext('2d');
+
+    let scale = 1, width, height;
+    let stars = [];
+    let pointerX, pointerY;
+    let velocity = { x: 0, y: 0, tx: 0, ty: 0, z: 0.0005 };
+    let touchInput = false;
+
+    generate();
+    resize();
+    step();
+
+    window.onresize = resize;
+    canvas.onmousemove = onMouseMove;
+    canvas.ontouchmove = onTouchMove;
+    canvas.ontouchend = onMouseLeave;
+    document.onmouseleave = onMouseLeave;
+
+    function generate() {
+      for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({ x: 0, y: 0, z: STAR_MIN_SCALE + Math.random() * (1 - STAR_MIN_SCALE) });
+      }
+    }
+
+    function placeStar(star) {
+      star.x = Math.random() * width;
+      star.y = Math.random() * height;
+    }
+
+    function recycleStar(star) {
+      let direction = 'z';
+      let vx = Math.abs(velocity.x), vy = Math.abs(velocity.y);
+
+      if (vx > 1 || vy > 1) {
+        let axis = vx > vy ? (Math.random() < vx / (vx + vy) ? 'h' : 'v') : (Math.random() < vy / (vx + vy) ? 'v' : 'h');
+        if (axis === 'h') direction = velocity.x > 0 ? 'l' : 'r';
+        else direction = velocity.y > 0 ? 't' : 'b';
+      }
+
+      star.z = STAR_MIN_SCALE + Math.random() * (1 - STAR_MIN_SCALE);
+
+      if (direction === 'z') {
+        star.z = 0.1;
+        star.x = Math.random() * width;
+        star.y = Math.random() * height;
+      } else if (direction === 'l') star.x = -50, star.y = height * Math.random();
+      else if (direction === 'r') star.x = width + 50, star.y = height * Math.random();
+      else if (direction === 't') star.x = width * Math.random(), star.y = -50;
+      else if (direction === 'b') star.x = width * Math.random(), star.y = height + 50;
+    }
+
+    function resize() {
+      scale = window.devicePixelRatio || 1;
+      width = window.innerWidth * scale;
+      height = window.innerHeight * scale;
+      canvas.width = width;
+      canvas.height = height;
+
+      stars.forEach(placeStar);
+    }
+
+    function step() {
+      context.clearRect(0, 0, width, height);
+      update(); render();
+      requestAnimationFrame(step);
+    }
+
+    function update() {
+      velocity.tx *= 0.96; velocity.ty *= 0.96;
+      velocity.x += (velocity.tx - velocity.x) * 0.8;
+      velocity.y += (velocity.ty - velocity.y) * 0.8;
+
+      stars.forEach((star) => {
+        star.x += velocity.x * star.z;
+        star.y += velocity.y * star.z;
+        star.x += (star.x - width / 2) * velocity.z * star.z;
+        star.y += (star.y - height / 2) * velocity.z * star.z;
+        star.z += velocity.z;
+
+        if (
+          star.x < -50 || star.x > width + 50 ||
+          star.y < -50 || star.y > height + 50
+        ) recycleStar(star);
+      });
+    }
+
+    function render() {
+      stars.forEach((star) => {
+        context.beginPath();
+        context.lineCap = 'round';
+        context.lineWidth = STAR_SIZE * star.z * scale;
+        context.globalAlpha = 0.5 + 0.5 * Math.random();
+        context.strokeStyle = STAR_COLOR;
+
+        context.moveTo(star.x, star.y);
+        context.lineTo(star.x + (velocity.x * 2), star.y + (velocity.y * 2));
+        context.stroke();
+      });
+    }
+
+    function movePointer(x, y) {
+      if (typeof pointerX === 'number' && typeof pointerY === 'number') {
+        let ox = x - pointerX, oy = y - pointerY;
+        velocity.tx += (ox / 8 * scale) * (touchInput ? 1 : -1);
+        velocity.ty += (oy / 8 * scale) * (touchInput ? 1 : -1);
+      }
+      pointerX = x; pointerY = y;
+    }
+
+    function onMouseMove(event) {
+      touchInput = false;
+      movePointer(event.clientX, event.clientY);
+    }
+
+    function onTouchMove(event) {
+      touchInput = true;
+      movePointer(event.touches[0].clientX, event.touches[0].clientY);
+      event.preventDefault();
+    }
+
+    function onMouseLeave() {
+      pointerX = null; pointerY = null;
+    }
+
+    /* ---------- CHATBOT SCRIPT ---------- */
+    function toggleChatbot() {
+      let bot = document.getElementById("chatbot");
+      bot.style.display = (bot.style.display === "flex") ? "none" : "flex";
+    }
+
+    function handleKey(event) {
+      if (event.key === "Enter") sendMessage();
+    }
+
+    function sendMessage() {
+      let input = document.getElementById("chat-input");
+      let message = input.value.trim();
+      if (message === "") return;
+
+      displayMessage(message, "user");
+      input.value = "";
+
+      setTimeout(() => {
+        let reply = getBotReply(message.toLowerCase());
+        displayMessage(reply, "bot");
+      }, 450);
+    }
+
+    function displayMessage(msg, sender) {
+      let chat = document.getElementById("chat-messages");
+      let bubble = document.createElement("div");
+
+      bubble.style.padding = "8px";
+      bubble.style.margin = "10px 0";
+      bubble.style.maxWidth = "80%";
+      bubble.style.borderRadius = "10px";
+
+      if (sender === "user") {
+        bubble.style.background = "#8a2be2";
+        bubble.style.marginLeft = "auto";
+      } else {
+        bubble.style.background = "#333";
+        bubble.style.marginRight = "auto";
+      }
+
+      bubble.innerText = msg;
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function getBotReply(message) {
+      if (message.includes("internship"))
+        return "You can find internships from the Internship Finder page. Click any company logo to go directly to their website.";
+
+      if (message.includes("resume"))
+        return "Your resume must include Skills, Projects, Experience, Certifications, and a clean one-page layout.";
+
+      if (message.includes("apply"))
+        return "Try applying to 2–3 internships every day and track your progress in the Internship Tracker.";
+
+      if (message.includes("skills"))
+        return "You can use our Skill Gap Analyzer to see which skills you need for your domain.";
+
+      if (message.includes("domain"))
+        return "Tell me your domain! Options: Web Development, AI/ML, Cybersecurity, Data Science, UI/UX.";
+
+      if (message.includes("hello") || message.includes("hi"))
+        return "Hello 👋! How can I help you today?";
+
+      return "I'm still learning! Ask me about internships, skills, resumes, domains, or career guidance.";
+    }
+  </script>
+
+</body>
+</html>
