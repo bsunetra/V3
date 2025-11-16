@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Internship Recommendation System</title>
+
+    <style>
+        /* ---------- STAR BACKGROUND ---------- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            background-color: #000;
+            background-image: radial-gradient(circle at top right, rgba(255, 87, 34, 0.15), transparent),
+            radial-gradient(circle at 20% 80%, rgba(33, 150, 243, 0.15), transparent);
+
+            /* FIX: allow scrolling */
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        /* ---------- MAIN CONTAINER ---------- */
+        .container {
+            position: relative;
+            z-index: 2;
+            width: 60%;
+            margin: 120px auto;
+            background: rgba(255,255,255,0.08);
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 0 15px #ffffff60;
+        }
+
+        select {
+            width: 100%;
+            height: 140px;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            background: #111;
+            color: white;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #5a5dfc;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #3c3fff;
+        }
+
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- STAR CANVAS -->
+<canvas id="stars"></canvas>
+
+<div class="container">
+    <h2>🔍 Internship Recommendation System</h2>
+    <p>Select your skills and get personalized internship suggestions!</p>
+
+    <label>Select Your Skills:</label>
+    <select id="skills" multiple>
+        <option>HTML</option>
+        <option>CSS</option>
+        <option>JavaScript</option>
+        <option>Python</option>
+        <option>Java</option>
+        <option>UI/UX</option>
+        <option>React</option>
+        <option>Data Science</option>
+    </select>
+
+    <button onclick="recommend()">Get Recommendations</button>
+
+    <h3>Recommended Internships:</h3>
+    <div id="output"></div>
+</div>
+
+<script>
+/* ---------- INTERNSHIP RECOMMENDATION LOGIC ---------- */
+function recommend() {
+    const selectedSkills = Array.from(document.getElementById("skills").selectedOptions)
+        .map(option => option.value);
+
+    const internships = [
+        { role: "Frontend Developer Intern", skills: ["HTML", "CSS", "JavaScript"] },
+        { role: "UI/UX Designer Intern", skills: ["UI/UX"] },
+        { role: "Java Developer Intern", skills: ["Java"] },
+        { role: "React Developer Intern", skills: ["React", "JavaScript"] },
+        { role: "Data Science Intern", skills: ["Python", "Data Science"] },
+        { role: "Full Stack Intern", skills: ["HTML", "CSS", "JavaScript", "Java"] },
+        { role: "Python Automation Intern", skills: ["Python"] },
+        { role: "Web Designer Intern", skills: ["HTML", "CSS", "UI/UX"] }
+    ];
+
+    let result = "";
+    
+    internships.forEach(intern => {
+        let match = intern.skills.some(skill => selectedSkills.includes(skill));
+        if (match) {
+            result += `<p>💼 <strong>${intern.role}</strong></p>`;
+        }
+    });
+
+    if (result === "") {
+        result = "<p>No matching internships found. Try selecting more skills.</p>";
+    }
+
+    document.getElementById("output").innerHTML = result;
+}
+
+/* ---------- FULL STAR BACKGROUND SCRIPT (EXACT SAME AS DASHBOARD) ---------- */
+
+const STAR_COLOR = '#fff';
+const STAR_SIZE = 3;
+const STAR_MIN_SCALE = 0.2;
+const STAR_COUNT = (window.innerWidth + window.innerHeight) / 8;
+
+const canvas = document.querySelector('canvas'),
+      context = canvas.getContext('2d');
+
+let scale = 1, width, height;
+let stars = [];
+let pointerX, pointerY;
+let velocity = { x: 0, y: 0, tx: 0, ty: 0, z: 0.0005 };
+let touchInput = false;
+
+generate();
+resize();
+step();
+
+window.onresize = resize;
+canvas.onmousemove = onMouseMove;
+canvas.ontouchmove = onTouchMove;
+canvas.ontouchend = onMouseLeave;
+document.onmouseleave = onMouseLeave;
+
+function generate() {
+    for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({ x: 0, y: 0, z: STAR_MIN_SCALE + Math.random() * (1 - STAR_MIN_SCALE) });
+    }
+}
+
+function placeStar(star) {
+    star.x = Math.random() * width;
+    star.y = Math.random() * height;
+}
+
+function recycleStar(star) {
+    star.z = STAR_MIN_SCALE + Math.random() * (1 - STAR_MIN_SCALE);
+    star.x = Math.random() * width;
+    star.y = Math.random() * height;
+}
+
+function resize() {
+    scale = window.devicePixelRatio || 1;
+    width = window.innerWidth * scale;
+    height = window.innerHeight * scale;
+    canvas.width = width;
+    canvas.height = height;
+
+    stars.forEach(placeStar);
+}
+
+function step() {
+    context.clearRect(0, 0, width, height);
+    update(); render();
+    requestAnimationFrame(step);
+}
+
+function update() {
+    velocity.tx *= 0.96;
+    velocity.ty *= 0.96;
+
+    velocity.x += (velocity.tx - velocity.x) * 0.8;
+    velocity.y += (velocity.ty - velocity.y) * 0.8;
+
+    stars.forEach((star) => {
+        star.x += velocity.x * star.z;
+        star.y += velocity.y * star.z;
+        star.x += (star.x - width / 2) * velocity.z * star.z;
+        star.y += (star.y - height / 2) * velocity.z * star.z;
+        star.z += velocity.z;
+
+        if (star.x < 0 || star.x > width || star.y < 0 || star.y > height)
+            recycleStar(star);
+    });
+}
+
+function render() {
+    stars.forEach((star) => {
+        context.beginPath();
+        context.lineCap = 'round';
+        context.lineWidth = STAR_SIZE * star.z * scale;
+        context.globalAlpha = 0.5 + 0.5 * Math.random();
+        context.strokeStyle = STAR_COLOR;
+
+        context.moveTo(star.x, star.y);
+        context.lineTo(star.x + (velocity.x * 2), star.y + (velocity.y * 2));
+        context.stroke();
+    });
+}
+
+function movePointer(x, y) {
+    if (typeof pointerX === 'number' && typeof pointerY === 'number') {
+        let ox = x - pointerX,
+            oy = y - pointerY;
+
+        velocity.tx += (ox * 0.1);
+        velocity.ty += (oy * 0.1);
+    }
+
+    pointerX = x;
+    pointerY = y;
+}
+
+function onMouseMove(e) { movePointer(e.clientX, e.clientY); }
+function onTouchMove(e) { movePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+function onMouseLeave() { pointerX = null; pointerY = null; }
+</script>
+
+</body>
+</html>
