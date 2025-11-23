@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mentor Appointment Registration</title>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: "Montserrat", sans-serif;
+        background: rgba(0,0,0,0.65);
+        color: white;
+        overflow-x: hidden;
+    }
+
+    /* STAR CONTAINER */
+    #star-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+
+    /* Stars */
+    .stars {
+        width: 2px;
+        height: 2px;
+        background: white;
+        position: absolute;
+        opacity: 0.5;
+        border-radius: 50%;
+        animation: blink 2s infinite ease-in-out;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 0.2; }
+        50% { opacity: 1; }
+    }
+
+    /* FORM CONTAINER */
+    .container {
+        position: relative;
+        z-index: 10;
+        width: 420px;
+        margin: 120px auto;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        padding: 30px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+
+    h2 {
+        margin-bottom: 10px;
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    p {
+        font-size: 14px;
+        opacity: 0.8;
+        margin-bottom: 20px;
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 14px;
+        margin: 10px 0;
+        border: none;
+        border-radius: 10px;
+        outline: none;
+        font-size: 15px;
+    }
+
+    textarea {
+        height: 130px;
+        resize: none;
+    }
+
+    button {
+        width: 100%;
+        padding: 14px;
+        background: #00c8ff;
+        border: none;
+        border-radius: 12px;
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        background: #63e3ff;
+        transform: scale(1.05);
+    }
+
+    #successMessage {
+        margin-top: 15px;
+        font-size: 14px;
+        color: #32ff7e;
+        display: none;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- ⭐ STAR BACKGROUND -->
+<div id="star-container"></div>
+
+<!-- ⭐ FORM -->
+<div class="container">
+    <h2>Book Your Mentor Appointment</h2>
+    <p>Share your primary query and we will assign the best mentor for you.</p>
+
+    <form id="appointmentForm">
+        <input type="text" id="name" name="name" placeholder="Your Full Name" required>
+        <input type="email" id="email" name="email" placeholder="Your Email" required>
+        <textarea id="query" name="query" placeholder="Describe your primary query..." required></textarea>
+
+        <button type="submit">Submit Appointment Request</button>
+    </form>
+
+    <p id="successMessage">Your appointment request has been submitted successfully!</p>
+</div>
+
+<script>
+/* 🌟 CREATE STARS */
+for (let i = 0; i < 200; i++) {
+    let star = document.createElement("div");
+    star.className = "stars";
+    star.style.top = Math.random() * window.innerHeight + "px";
+    star.style.left = Math.random() * window.innerWidth + "px";
+    document.getElementById("star-container").appendChild(star);
+}
+
+/* 🌟 LIGHT PARALLAX */
+document.addEventListener("mousemove", function(e) {
+    document.querySelectorAll(".stars").forEach(star => {
+        let speed = 0.02;
+        star.style.transform = `translate(${e.clientX * speed}px, ${e.clientY * speed}px)`;
+    });
+});
+
+/* 🌟 FORM SUBMISSION */
+document.getElementById("appointmentForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    let formData = new FormData();
+    formData.append("name", document.getElementById("name").value);
+    formData.append("email", document.getElementById("email").value);
+    formData.append("query", document.getElementById("query").value);
+
+    // YOUR APPS SCRIPT URL
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyVdh4h8IxIvTQvaCiEMPnLmwSno89DLU9rKctIy020KaxhVX9wubutVF7p0wR8SsJu/exec";
+
+    try {
+        await fetch(scriptURL, { method: "POST", body: formData });
+
+        document.getElementById("successMessage").style.display = "block";
+        document.getElementById("appointmentForm").reset();
+    } catch (error) {
+        alert("Something went wrong! Check Apps Script permissions.");
+    }
+});
+</script>
+
+</body>
+</html>
