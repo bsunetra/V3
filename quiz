@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz — Internship Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- STAR BACKGROUND ---------- */
+    body {
+      width: 100%;
+      height: 100vh;
+      background-color: #000;
+      background-image: radial-gradient(circle at top right, rgba(121,68,154,0.13), transparent),
+                        radial-gradient(circle at 20% 80%, rgba(41,196,255,0.13), transparent);
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      font-family: "Montserrat", sans-serif;
+      color: white;
+    }
+    canvas { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; }
+
+    /* ---------- MAIN UI ---------- */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: auto;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.06);
+      padding: 28px;
+      border-radius: 18px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      color: #fff;
+    }
+
+
+    header h1 {
+      font-size:1.6rem;
+      margin:0;
+      background: linear-gradient(135deg,#7b2ff7,#f107a3);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+
+    .meta { color: rgba(255,255,255,0.8); font-size:0.95rem; margin-bottom:18px; }
+
+    .card {
+      background: rgba(0,0,0,0.25);
+      padding:18px;
+      border-radius:12px;
+      margin-bottom:16px;
+    }
+
+    .progress {
+      height:10px;
+      background: rgba(255,255,255,0.08);
+      border-radius:8px;
+      overflow:hidden;
+      margin-bottom:14px;
+    }
+
+    .progress > i {
+      display:block;
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg,#00c6ff,#0072ff);
+      transition: width 260ms ease;
+    }
+
+    .question {
+      font-weight:600;
+      font-size:1.05rem;
+      margin-bottom:12px;
+    }
+
+    .options { display:flex; flex-direction:column; gap:10px; }
+
+    .option-btn {
+      text-align:left;
+      padding:14px;
+      border-radius:10px;
+      border:none;
+      background: rgba(255,255,255,0.04);
+      color:white;
+      font-size:0.98rem;
+      cursor:pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .option-btn:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+    .option-btn.selected { outline: 2px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); }
+
+    .nav {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .btn {
+      padding:10px 18px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      text-decoration:none;
+      color:white;
+      background: linear-gradient(135deg,#6a11cb,#2575fc);
+    }
+    .btn.ghost { background: transparent; border:1px solid rgba(255,255,255,0.08); }
+
+    .score {
+      text-align:center;
+      padding:18px;
+    }
+
+    .review-list { max-height:320px; overflow:auto; margin-top:12px; }
+
+    @media (max-width:600px){
+      .wrap { padding:18px; }
+      header h1 { font-size:1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas></canvas>
+
+  <div class="wrap" role="main">
+    <header style="
+      text-align: center;
+      margin-bottom: 25px;
+    ">
+      <h1 id="title" style="
+      margin: 0;
+      font-size: 2rem;
+      background: linear-gradient(135deg, #7b2ff7, #f107a3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    "></h1>
+
+    <div id="domainMeta" style="
+      margin-top: 6px;
+      font-size: 1rem;
+      color: rgba(255,255,255,0.85);
+    "></div>
+    </header>
+
+
+
+    <div class="card" id="quizCard">
+      <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+      <div class="question" id="qText">...</div>
+      <div class="options" id="options"></div>
+
+      <div class="nav">
+        <button id="prevBtn" class="btn ghost" disabled>← Previous</button>
+        <div style="flex:1"></div>
+        <button id="nextBtn" class="btn">Next →</button>
+      </div>
+    </div>
+
+    <div id="resultCard" class="card" style="display:none;">
+      <div class="score" id="scoreArea"></div>
+      <div class="review-list" id="reviewList"></div>
+      <div style="text-align:center; margin-top:14px;">
+        <a id="retryBtn" class="btn">Retry</a>
+        <a id="backBtn" class="btn ghost" style="margin-left:10px;">Back to Practice</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- STAR BACKGROUND SCRIPT (same as provided) ---------- -->
+  <script>
+    const STAR_COLOR = '#fff';
+    const STAR_SIZE = 3;
+    const STAR_MIN_SCALE = 0.2;
+    const OVERFLOW_THRESHOLD = 50;
+    const STAR_COUNT = (window.innerWidth + window.innerHeight) / 8;
+    const canvas = document.querySelector('canvas'), context = canvas.getContext('2d');
+    let scale = 1, width, height; let stars = []; let pointerX, pointerY;
+    let velocity = { x:0, y:0, tx:0, ty:0, z:0.0005 }; let touchInput = false;
+    generate(); resize(); step();
+    window.onresize = resize; canvas.onmousemove = onMouseMove; canvas.ontouchmove = onTouchMove;
+    canvas.ontouchend = onMouseLeave; document.onmouseleave = onMouseLeave;
+
+    function generate(){ for(let i=0;i<STAR_COUNT;i++) stars.push({x:0,y:0,z:STAR_MIN_SCALE + Math.random() * (1-STAR_MIN_SCALE)}); }
+    function placeStar(s){ s.x = Math.random()*width; s.y = Math.random()*height; }
+    function recycleStar(star){
+      let direction='z'; let vx=Math.abs(velocity.x), vy=Math.abs(velocity.y);
+      if(vx>1||vy>1){ let axis = vx>vy ? (Math.random() < vx/(vx+vy) ? 'h' : 'v') : (Math.random() < vy/(vx+vy) ? 'v' : 'h');
+        if(axis === 'h') direction = velocity.x > 0 ? 'l' : 'r'; else direction = velocity.y > 0 ? 't' : 'b';
+      }
+      star.z = STAR_MIN_SCALE + Math.random() * (1 - STAR_MIN_SCALE);
+      if(direction === 'z'){ star.z=0.1; star.x = Math.random()*width; star.y = Math.random()*height; }
+      else if(direction === 'l'){ star.x = -OVERFLOW_THRESHOLD; star.y = height*Math.random(); }
+      else if(direction === 'r'){ star.x = width + OVERFLOW_THRESHOLD; star.y = height*Math.random(); }
+      else if(direction === 't'){ star.x = width*Math.random(); star.y = -OVERFLOW_THRESHOLD; }
+      else { star.x = width*Math.random(); star.y = height + OVERFLOW_THRESHOLD; }
+    }
+    function resize(){ scale = window.devicePixelRatio || 1; width = window.innerWidth * scale; height = window.innerHeight * scale; canvas.width = width; canvas.height = height; stars.forEach(placeStar); }
+    function step(){ context.clearRect(0,0,width,height); update(); render(); requestAnimationFrame(step); }
+    function update(){
+      velocity.tx *= 0.96; velocity.ty *= 0.96;
+      velocity.x += (velocity.tx - velocity.x) * 0.8;
+      velocity.y += (velocity.ty - velocity.y) * 0.8;
+      stars.forEach(star => {
+        star.x += velocity.x * star.z;
+        star.y += velocity.y * star.z;
+        star.x += (star.x - width/2) * velocity.z * star.z;
+        star.y += (star.y - height/2) * velocity.z * star.z;
+        star.z += velocity.z;
+        if(star.x < -OVERFLOW_THRESHOLD || star.x > width + OVERFLOW_THRESHOLD || star.y < -OVERFLOW_THRESHOLD || star.y > height + OVERFLOW_THRESHOLD) recycleStar(star);
+      });
+    }
+    function render(){
+      stars.forEach(star => {
+        context.beginPath();
+        context.lineCap = 'round';
+        context.lineWidth = STAR_SIZE * star.z * scale;
+        context.globalAlpha = 0.5 + 0.5*Math.random();
+        context.strokeStyle = STAR_COLOR;
+        context.moveTo(star.x, star.y);
+        let tailX = velocity.x * 2, tailY = velocity.y * 2;
+        if(Math.abs(tailX) < 0.1) tailX = 0.5;
+        if(Math.abs(tailY) < 0.1) tailY = 0.5;
+        context.lineTo(star.x + tailX, star.y + tailY);
+        context.stroke();
+      });
+    }
+    function movePointer(x,y){
+      if(typeof pointerX === 'number' && typeof pointerY === 'number'){
+        let ox = x - pointerX, oy = y - pointerY;
+        velocity.tx += (ox/8 * scale) * (touchInput ? 1 : -1);
+        velocity.ty += (oy/8 * scale) * (touchInput ? 1 : -1);
+      }
+      pointerX = x; pointerY = y;
+    }
+    function onMouseMove(e){ touchInput = false; movePointer(e.clientX, e.clientY); }
+    function onTouchMove(e){ touchInput = true; movePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+    function onMouseLeave(){ pointerX = null; pointerY = null; }
+  </script>
+
+  <!-- ---------- QUIZ LOGIC + HARDCODED QUESTIONS (10 per domain) ---------- -->
+  <script>
+    // Utility: read query param
+    function getQueryParam(name){
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    // QUESTIONS: 7 domains × 10 questions each
+    // Each question: { q: 'text', choices: ['a','b','c','d'], a: indexOfCorrect (0-based) }
+    const QUESTIONS = {
+      "Web Development": [
+        { q: "Which HTML element is used to link CSS files?", choices:["<script>","<link>","<style>","<css>"], a:1 },
+        { q: "Which HTTP method is commonly used to update a resource?", choices:["GET","POST","PUT","CONNECT"], a:2 },
+        { q: "In CSS, which property controls layout direction (row/column)?", choices:["display","flex-direction","align-items","position"], a:1 },
+        { q: "What does DOM stand for?", choices:["Document Object Model","Data Object Model","Digital Object Model","Document Oriented Model"], a:0 },
+        { q: "Which JavaScript method converts JSON string to object?", choices:["JSON.parse","JSON.stringify","JSON.toObj","JSON.decode"], a:0 },
+        { q: "Which attribute adds semantic importance to a button for accessibility?", choices:["role","class","data-attr","id"], a:0 },
+        { q: "Which response status code means 'Not Found'?", choices:["200","301","404","500"], a:2 },
+        { q: "Which HTML tag is used for the largest heading?", choices:["<h1>","<h6>","<header>","<title>"], a:0 },
+        { q: "Which CSS unit is relative to the root element's font-size?", choices:["px","em","rem","pt"], a:2 },
+        { q: "Which tool is used for bundling JavaScript modules?", choices:["Git","Webpack","Docker","Jest"], a:1 }
+      ],
+      "Machine Learning": [
+        { q: "Which metric measures average squared difference between predictions and actual values?", choices:["Accuracy","Mean Squared Error","Recall","F1-score"], a:1 },
+        { q: "Which algorithm is used for classification and is tree-based with boosting?", choices:["KNN","Naive Bayes","Random Forest","XGBoost"], a:3 },
+        { q: "Which technique reduces dimensionality while preserving variance?", choices:["PCA","K-Means","LDA clustering","Gradient Descent"], a:0 },
+        { q: "Which is an example of a loss function for binary classification?", choices:["Cross-Entropy Loss","MSE","Silhouette","RMSE"], a:0 },
+        { q: "What is 'overfitting'?", choices:["Model too simple","Model performs well on train but poorly on unseen data","Noisy data","Correct model complexity"], a:1 },
+        { q: "Which method prevents overfitting by averaging multiple models?", choices:["Boosting","Bagging","Gradient Descent","Batch Normalization"], a:1 },
+        { q: "Which algorithm is unsupervised?", choices:["Linear Regression","Decision Tree","K-Means","Logistic Regression"], a:2 },
+        { q: "Which activation makes outputs between 0 and 1?", choices:["ReLU","Tanh","Sigmoid","Softmax"], a:2 },
+        { q: "Which optimizer adapts learning rates per-parameter using moments?", choices:["SGD","Adam","RMSProp","Adagrad"], a:1 },
+        { q: "Which validation technique splits data into k folds?", choices:["Train-Test Split","K-Fold Cross Validation","Bootstrapping","Grid Search"], a:1 }
+      ],
+      "Cyber Security": [
+        { q: "What does XSS stand for?", choices:["Cross-Site Scripting","XML Secure Service","Cross Server Script","eXtra Secure Site"], a:0 },
+        { q: "Which is a strong password practice?", choices:["Using 'password123'","Reuse same password","Using a passphrase + manager","Using username as password"], a:2 },
+        { q: "Which protocol provides encrypted web traffic?", choices:["HTTP","FTP","HTTPS","Telnet"], a:2 },
+        { q: "What is phishing?", choices:["Port scanning","Social engineering to steal credentials","Encrypting files","Firewall configuration"], a:1 },
+        { q: "Which tool is commonly used for network packet analysis?", choices:["Wireshark","Photoshop","Nginx","Postman"], a:0 },
+        { q: "What does 2FA mean?", choices:["Two Function Authentication","Two-Factor Authentication","Two Form Authorization","Two File Access"], a:1 },
+        { q: "Which attack tries many password guesses quickly?", choices:["SQL Injection","Brute Force","Man-in-the-Middle","XSS"], a:1 },
+        { q: "Which header helps mitigate clickjacking?", choices:["X-Frame-Options","Content-Type","Server","Cache-Control"], a:0 },
+        { q: "What is the principle of least privilege?", choices:["Give users all permissions","Users get minimal necessary permissions","No permissions","Everyone is admin"], a:1 },
+        { q: "Which is a safe practice for public Wi-Fi?", choices:["Share sensitive data freely","Use VPN","Disable firewall","Use unencrypted HTTP only"], a:1 }
+      ],
+      "UI/UX Design": [
+        { q: "What does 'affordance' in UI mean?", choices:["Color scheme","Indication that an element is clickable","Server response time","Text size"], a:1 },
+        { q: "Which principle improves readability on a page?", choices:["Tiny fonts","Good contrast between text and background","Cluttered layout","No spacing"], a:1 },
+        { q: "What is a wireframe?", choices:["Final HTML file","Low-fidelity layout representing structure","Graphic asset","Database schema"], a:1 },
+        { q: "Which is best for reducing cognitive load?", choices:["Too many options","Clear hierarchy and grouping","Random layout","Auto-playing audio"], a:1 },
+        { q: "What is 'responsive design'?", choices:["Design for a single screen size","Design that adapts to different screen sizes","Design only for desktop","Design without images"], a:1 },
+        { q: "Which color property affects user emotion most directly?", choices:["Typography","Hue","File size","Margin"], a:1 },
+        { q: "What does 'UX' primarily focus on?", choices:["How product feels","Server uptime","Code quality","Database performance"], a:0 },
+        { q: "Which testing gathers real user feedback?", choices:["Unit tests","A/B testing","Spell check","Minification"], a:1 },
+        { q: "Which grid improves alignment and consistency?", choices:["No grid","Column grid system","Random guides","Fixed pixel placement only"], a:1 },
+        { q: "Which is an accessibility best practice?", choices:["Use color alone to convey info","Provide text alternatives for images","Only use tiny click targets","Disable keyboard navigation"], a:1 }
+      ],
+      "Data Science": [
+        { q: "Which step cleans and prepares data for modeling?", choices:["Data Wrangling","Deployment","Monitoring","HTTP request"], a:0 },
+        { q: "Which plot shows distribution of a single numeric variable?", choices:["Bar chart","Histogram","Network diagram","Scatter matrix"], a:1 },
+        { q: "Which technique summarizes central tendency?", choices:["Mean and Median","Clustering","Normalization","Tokenization"], a:0 },
+        { q: "Which library is popular for dataframes in Python?", choices:["NumPy","Pandas","Matplotlib","Flask"], a:1 },
+        { q: "Which sampling reduces bias using random selection?", choices:["Stratified sampling","Convenience sampling","Snowball sampling","Judgment sampling"], a:0 },
+        { q: "Which metric is used for classification imbalance?", choices:["Accuracy only","Precision and Recall","File size","Latency"], a:1 },
+        { q: "What is feature engineering?", choices:["Writing frontend code","Creating features from raw data","Deploying models","Encrypting data"], a:1 },
+        { q: "Which technique detects correlations between variables?", choices:["Correlation matrix","Docker Compose","Nginx config","CSS Grid"], a:0 },
+        { q: "Which is used to evaluate clustering quality?", choices:["Silhouette Score","F1-score","RMSE","BLEU"], a:0 },
+        { q: "Which is a supervised learning task?", choices:["Regression","Clustering","Dimensionality reduction","Anomaly detection (unsupervised)"], a:0 }
+      ],
+      "Cloud Computing": [
+        { q: "Which cloud model provides virtualized hardware resources?", choices:["SaaS","PaaS","IaaS","DaaS"], a:2 },
+        { q: "Which term means automatic resource scaling based on load?", choices:["Replication","Autoscaling","Provisioning","Caching"], a:1 },
+        { q: "Which service is used to store objects in S3-like storage?", choices:["Block storage","Object storage","Local file","CDN only"], a:1 },
+        { q: "What is 'serverless' computing?", choices:["No servers exist","Providers manage servers; you run functions","Only front-end hosting","Dedicated bare metal"], a:1 },
+        { q: "Which is an example of a cloud provider?", choices:["Apache","AWS","Linux Kernel","Postman"], a:1 },
+        { q: "What does 'region' refer to in cloud?", choices:["A single data center","A geographical area with multiple zones","A code repo","A virtual machine"], a:1 },
+        { q: "Which is used for container orchestration?", choices:["Kubernetes","NPM","MySQL","Redis"], a:0 },
+        { q: "Which concept isolates tenants in multi-tenant systems?", choices:["Load balancing","Tenant isolation","Minification","Inlining"], a:1 },
+        { q: "Which is a cloud-native design principle?", choices:["Monolith only","Stateless services","Tight coupling","Manual scaling"], a:1 },
+        { q: "Which protocol commonly used for API gateway traffic?", choices:["SMTP","HTTP/HTTPS","FTP","SSH"], a:1 }
+      ],
+      "Blockchain": [
+        { q: "What is a blockchain's basic unit of data?", choices:["Block","Node","Hash","Token"], a:0 },
+        { q: "Which concept ensures immutability of blockchain data?", choices:["Centralization","Hash chaining","Single point of failure","Plain text storage"], a:1 },
+        { q: "What is a 'smart contract'?", choices:["A legal contract only","Self-executing code on blockchain","A central server","A wallet type"], a:1 },
+        { q: "Which consensus algorithm is energy intensive?", choices:["Proof of Work","Proof of Stake","Raft","Paxos"], a:0 },
+        { q: "A public blockchain allows which of the following?", choices:["Permissionless participation","Private keys always public","Central admin only","No transactions"], a:0 },
+        { q: "Which item stores private keys controlling funds?", choices:["Smart contract","Wallet","Block","Consensus"], a:1 },
+        { q: "What does 'tokenization' enable on blockchains?", choices:["Convert assets to tokens","Faster CSS","Database joins","Server caching"], a:0 },
+        { q: "Which language is commonly used for Ethereum smart contracts?", choices:["Solidity","Python","JavaScript","Rust"], a:0 },
+        { q: "What is 'gas' in Ethereum?", choices:["Transaction fee mechanism","Block size","Consensus protocol","A debugging tool"], a:0 },
+        { q: "Which property prevents double-spending?", choices:["Hash collisions","Consensus and chain validation","Faster networks","Single authority"], a:1 }
+      ]
+    };
+
+    // State
+    let domain = getQueryParam('domain') || 'Web Development';
+    if(!QUESTIONS[domain]) domain = 'Web Development';
+
+    const qList = QUESTIONS[domain];
+    const total = qList.length;
+    let idx = 0;
+    let answers = new Array(total).fill(null); // store selected indexes
+
+    // UI elements
+    const title = document.getElementById('title');
+    const domainMeta = document.getElementById('domainMeta');
+    const qText = document.getElementById('qText');
+    const optionsEl = document.getElementById('options');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressBar = document.getElementById('progressBar');
+    const quizCard = document.getElementById('quizCard');
+    const resultCard = document.getElementById('resultCard');
+    const scoreArea = document.getElementById('scoreArea');
+    const reviewList = document.getElementById('reviewList');
+    const retryBtn = document.getElementById('retryBtn');
+    const backBtn = document.getElementById('backBtn');
+
+    // Initialize header
+    title.textContent = `${domain} Quiz`;
+    domainMeta.textContent = `${domain} • 10 questions`;
+
+    function renderQuestion() {
+      const qObj = qList[idx];
+      qText.textContent = `${idx+1}. ${qObj.q}`;
+      optionsEl.innerHTML = '';
+      qObj.choices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = choice;
+        btn.setAttribute('data-choice', i);
+        if(answers[idx] === i) btn.classList.add('selected');
+        btn.addEventListener('click', () => {
+          // select
+          answers[idx] = i;
+          // mark selected visually
+          [...optionsEl.children].forEach(c => c.classList.remove('selected'));
+          btn.classList.add('selected');
+        });
+        optionsEl.appendChild(btn);
+      });
+
+      // Update nav state
+      prevBtn.disabled = idx === 0;
+      nextBtn.textContent = idx === total - 1 ? 'Finish' : 'Next →';
+      // progress
+      const pct = Math.round((idx / total) * 100);
+      progressBar.style.width = pct + '%';
+    }
+
+    // Navigation handlers
+    prevBtn.addEventListener('click', () => {
+      if(idx > 0) { idx--; renderQuestion(); }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      // if no answer selected for this question, confirm
+      if(answers[idx] === null) {
+        const ok = confirm('You have not selected an answer for this question. Continue anyway?');
+        if(!ok) return;
+      }
+      if(idx < total - 1) {
+        idx++; renderQuestion();
+      } else {
+        finishQuiz();
+      }
+    });
+
+    function finishQuiz() {
+      // compute score
+      let correct = 0;
+      const review = [];
+      qList.forEach((q, i) => {
+        const user = answers[i];
+        const isCorrect = user === q.a;
+        if(isCorrect) correct++;
+        review.push({
+          q: q.q,
+          choices: q.choices,
+          correctIndex: q.a,
+          userIndex: user
+        });
+      });
+
+      quizCard.style.display = 'none';
+      resultCard.style.display = 'block';
+      progressBar.style.width = '100%';
+      scoreArea.innerHTML = `<h2>Score: ${correct} / ${total}</h2>
+        <p style="color:rgba(255,255,255,0.85)">You answered <strong>${correct}</strong> questions correctly.</p>`;
+
+      // review
+      reviewList.innerHTML = '';
+      review.forEach((r, i) => {
+        const node = document.createElement('div');
+        node.style.padding = '10px';
+        node.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        node.innerHTML = `<div style="font-weight:700">${i+1}. ${r.q}</div>
+          <div style="margin-top:8px">
+            ${r.choices.map((c, idxC) => {
+              const mark = (idxC === r.correctIndex) ? '✔' : ((idxC === r.userIndex) ? '✖' : '');
+              const style = idxC === r.correctIndex ? 'color: #b7ffcf; font-weight:600;' : (idxC === r.userIndex ? 'color:#ffb7b7;' : 'color:rgba(255,255,255,0.8);');
+              return `<div style="margin:6px 0; ${style}">${mark} ${c}</div>`;
+            }).join('')}
+          </div>`;
+        reviewList.appendChild(node);
+      });
+    }
+
+    retryBtn.addEventListener('click', () => {
+      answers = new Array(total).fill(null);
+      idx = 0;
+      resultCard.style.display = 'none';
+      quizCard.style.display = 'block';
+      renderQuestion();
+      progressBar.style.width = '0%';
+    });
+
+    backBtn.addEventListener('click', () => {
+      // go back to practice page (assumes practice.html exists next to this file)
+      window.location.href = 'practice.html';
+    });
+
+    // Initialize first question
+    renderQuestion();
+  </script>
+</body>
+</html>
